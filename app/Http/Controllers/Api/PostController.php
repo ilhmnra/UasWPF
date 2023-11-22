@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Post;
+use Exception;
 
 class PostController extends Controller
 {
@@ -13,8 +14,11 @@ class PostController extends Controller
      */
     public function index()
     {
-        $post = Post::all();
-        return response()->json($post);
+        $post = Post::with('user')->get();
+        return response()->json([
+            'status' => 'success',
+            'data' => $post
+        ]);
     }
 
     /**
@@ -26,12 +30,23 @@ class PostController extends Controller
             $validator = Validator($request->all(), [
                 'title' => 'required|string|max:255',
                 'description' => 'required|string|max:255',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg',
                 'userId' => 'required',
             ]);
 
-            $image = $request->file('image');
-            $image->storeAs('public/posts', $image->hashName());
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $validator->errors()->first()
+                ]);
+            }
+    
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imagePath = $image->storeAs('public/posts', $image->hashName());
+            } else {
+                $imagePath = null;
+            }
 
             $post = Post::create([
                 'title' => $request->title,
@@ -87,6 +102,19 @@ class PostController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        try{
+            $post = Post::find($id);
+            $post->delete();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Post deleted successfully'
+            ]);
+        }
+        catch(Exception $e){
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 }

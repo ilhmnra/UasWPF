@@ -1,0 +1,101 @@
+<x-app-layout>
+  <x-slot name="header">
+    <div class="flex gap-8">
+      <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+          {{ __('Post') }}
+      </h2>
+      <x-modal-post />
+    </div>
+  </x-slot>
+
+  <div class="py-12">
+      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+          <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+              <div class="p-6 text-gray-900 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 dark:text-gray-100" id="posts" >
+                  
+              </div>
+          </div>
+      </div>
+  </div>
+  
+</x-app-layout>
+
+<script>
+  let posts;
+  $.ajax({
+      type: 'GET',
+      url: '{{ route('posts.show', ':post') }}'.replace(':post', '{{auth()->user()->id}}'),
+      success: function(response) {
+          response.data.forEach(element => {
+              $('#posts').append(card(element.title,element.image, element.description, element.created_at, element.updated_at, element.id));
+          });
+      },
+      error: function(data) {
+          console.log(data);
+      }
+  })
+
+
+  function card (title, image, description, created_at, updated_at, id) {
+      return (
+          `<div class="max-w-sm rounded overflow-hidden shadow-lg ">
+              <div class="w-full flex justify-center">
+                <img width="200px" height="200px" src="{{ asset('storage/posts/${image}') }}" alt="Sunset in the mountains">
+                </div>
+              <div class="px-6 py-4">
+                  <div class="font-bold text-xl mb-2">${title}</div>
+                  <p class="text-gray-700 text-base">
+                      ${description}
+                  </p>
+              </div>
+              <div class="px-6 pt-4 pb-2">
+                  <span class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">Created : ${created_at}</span>
+                  <span class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">Updated : ${updated_at}</span>
+                  <div class= "flex gap-4 mt-8  " >
+                    <button onclick="handledelete(${id})" class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">Delete</button>
+                  </div>
+              </div>
+          </div>`
+      )
+  }
+
+  function handledelete(id) {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          type: "DELETE",
+          url: "{{ route('posts.destroy', ':id') }}".replace(':id', id),
+          success: function(response){
+            console.log(response);
+            Swal.fire(
+              'Deleted!',
+            ).then((result) => {
+              if (result.isConfirmed) {
+                location.reload();
+              }
+            })
+          },
+          error: function(data){
+            console.log(data);
+            Swal.fire({
+              title: "Error!",
+              text: "Something went wrong!",
+              icon: "error",
+              buttons: true,
+            })
+          }
+        })
+      }
+    })
+  }
+
+  console.log(posts)
+</script>
